@@ -24,7 +24,7 @@ const transaction: Transaction = {
     witness: "Here is a bunch of stuff.",
 }
 
-const feeRate: SatsPerVByte = 500;
+const feeRate: SatsPerVByte = 50;
 
 const txFee = calculateTxFee(transaction, feeRate);
 
