@@ -6,7 +6,16 @@ type Transaction = {
     witness: string;
 }
 
-function calculateTxFee(tx: Transaction, feeRate: SatsPerVByte): Sats {
+let halfHourFee: SatsPerVByte | undefined;
+
+fetch('https://mempool.space/api/v1/fees/recommended')
+  .then(response => response.json())
+  .then(data => {
+    const halfHourFee = data.medianFee;
+  })
+  .catch(error => console.error('Error:', error));
+
+function calculateTxFee(tx: Transaction, medianFee: SatsPerVByte): Sats {
     const {inputs, outputs, witness} = tx;
 
     const inputWeight = inputs * 4;
@@ -15,8 +24,16 @@ function calculateTxFee(tx: Transaction, feeRate: SatsPerVByte): Sats {
 
     const totalWeight = inputWeight + outputWeight + witnessWeight
 
-    return totalWeight * feeRate;
+    return totalWeight * medianFee;
 }
+
+function getTransactionFee(tx: Transaction): Sats | undefined {
+    if (halfHourFee === undefined) {
+      console.error('medianFee not available yet');
+      return undefined;
+    }
+    return calculateTxFee(tx, halfHourFee as SatsPerVByte);
+  }
 
 const transaction: Transaction = {
     inputs: 3,
@@ -24,8 +41,10 @@ const transaction: Transaction = {
     witness: "Here is a bunch of stuff.",
 }
 
-const feeRate: SatsPerVByte = 50;
+const txFee = getTransactionFee(transaction);
 
-const txFee = calculateTxFee(transaction, feeRate);
-
-console.log(`The transaction: ${txFee}`)
+if (txFee !== undefined) {
+    console.log(`The transaction fee is: ${txFee}`);
+  } else {
+    console.log('Failed to calculate transaction fee');
+  }
