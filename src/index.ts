@@ -35,9 +35,9 @@ async function fetchFees() {
         console.error('Error fetching national debt data:', error);
         return null;
     }
-  }
+}
 
-  (async () => {
+(async () => {
     const data = await fetchFees();
     if (data) {
         console.log(data)
