@@ -6,16 +6,7 @@ type Transaction = {
     witness: string;
 }
 
-let halfHourFee: SatsPerVByte | undefined;
-
-fetch('https://mempool.space/api/v1/fees/recommended')
-  .then(response => response.json())
-  .then(data => {
-    const halfHourFee = data.medianFee;
-  })
-  .catch(error => console.error('Error:', error));
-
-function calculateTxFee(tx: Transaction, medianFee: SatsPerVByte): Sats {
+function calculateTxFee(tx: Transaction, feeRate: SatsPerVByte): Sats {
     const {inputs, outputs, witness} = tx;
 
     const inputWeight = inputs * 4;
@@ -24,16 +15,8 @@ function calculateTxFee(tx: Transaction, medianFee: SatsPerVByte): Sats {
 
     const totalWeight = inputWeight + outputWeight + witnessWeight
 
-    return totalWeight * medianFee;
+    return totalWeight * feeRate;
 }
-
-function getTransactionFee(tx: Transaction): Sats | undefined {
-    if (halfHourFee === undefined) {
-      console.error('medianFee not available yet');
-      return undefined;
-    }
-    return calculateTxFee(tx, halfHourFee as SatsPerVByte);
-  }
 
 const transaction: Transaction = {
     inputs: 3,
@@ -41,10 +24,29 @@ const transaction: Transaction = {
     witness: "Here is a bunch of stuff.",
 }
 
-const txFee = getTransactionFee(transaction);
-
-if (txFee !== undefined) {
-    console.log(`The transaction fee is: ${txFee}`);
-  } else {
-    console.log('Failed to calculate transaction fee');
+async function fetchFees() {
+    const url = 'https://mempool.space/api/v1/fees/recommended';
+    
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error fetching national debt data:', error);
+        return null;
+    }
   }
+
+  (async () => {
+    const data = await fetchFees();
+    if (data) {
+        console.log(data)
+        const feeRate: SatsPerVByte = data.hourFee;
+        const fastRate: SatsPerVByte = data.fastestFee;
+        const txFee = calculateTxFee(transaction, feeRate);
+        const fastFee = calculateTxFee(transaction, fastRate);
+        console.log(`The transaction fee is: ${txFee} if you can wait for an hour. It will be ${fastFee} if you need it now.`);
+    } else {
+        console.error('Failed to fetch fees.');
+    }
+})();
